@@ -1,0 +1,32 @@
+[
+    {
+        "model": "source.LibraryModel",
+        "pk": 1,
+        "fields": {
+            "library_uid": "83575e12-7ce0-48ee-9931-51919ff3c9ee",
+            "name": "Библиотека имени 7 Непьющих",
+            "city": "Москва",
+            "address": "2-я Бауманская ул., д.5, стр.1"
+        }
+    },
+    {
+        "model": "source.BookModel",
+        "pk": 1,
+        "fields": {
+            "book_uid": "f7cdc58f-2caf-4b15-9727-f89dcc629b27",
+            "name": "Краткий курс C++ в 7 томах",
+            "author": "Бьерн Страуструп",
+            "genre": "Научная фантастика",
+            "condition": "EXCELLENT"
+        }
+    },
+    {
+        "model": "source.BookLibraryModel",
+        "pk": 1,
+        "fields": {
+            "book_id": 1,
+            "library_id": 1,
+            "available_count": 1
+        }
+    }
+]

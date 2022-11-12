@@ -1,0 +1,10 @@
+[
+    {
+        "model": "source.RatingModel",
+        "pk": 1,
+        "fields": {
+            "username": "Test Max",
+            "stars": 75
+        }
+    }
+]
