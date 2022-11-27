@@ -1,7 +1,7 @@
 from collections import OrderedDict
 
 import django_filters
-from rest_framework.generics import ListAPIView, RetrieveAPIView, RetrieveUpdateAPIView, get_object_or_404
+from rest_framework.generics import ListAPIView, RetrieveAPIView, UpdateAPIView, get_object_or_404
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 
@@ -31,6 +31,32 @@ class Pagination(PageNumberPagination):
         ]))
 
 
+def get_object_with_multiple_lookup(self):
+    """
+    Override for working with multiple fields in `lookup_field`.
+    :return:
+    """
+    queryset = self.filter_queryset(self.get_queryset())
+    # Perform the lookup filtering.
+    lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+
+    assert all(k in self.kwargs for k in self.lookup_field), (
+        'Expected view %s to be called with a URL keyword argument '
+        'named "%s". Fix your URL conf, or set the `.lookup_field` '
+        'attribute on the view correctly.' %
+        (self.__class__.__name__, lookup_url_kwarg)
+    )
+
+    filter_kwargs = {
+        k: self.kwargs.get(k) for k in self.lookup_field
+    }
+    obj = get_object_or_404(queryset, **filter_kwargs)
+
+    self.check_object_permissions(self.request, obj)
+
+    return obj
+
+
 class LibraryAllAPIView(ListAPIView):
     serializer_class = LibraryWithoutBooksSerializer
     queryset = LibraryModel.objects
@@ -58,38 +84,43 @@ class BookLibraryUUIDAPIView(ListAPIView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        if "False" in self.request.query_params.get("showAll", "False").capitalize():
+        if "False" in self.request.query_params.get("show_all", "False").capitalize():
             queryset = queryset.filter(available_count__gt=0)
         return queryset
 
 
-class BookUUIDLibraryUUIDAPIView(RetrieveUpdateAPIView):
+class BookUUIDLibraryUUIDAPIView(RetrieveAPIView):
     serializer_class = BookUUIDLibraryUUIDSerializer
     queryset = BookLibraryModel.objects
     renderer_classes = (JSONRenderer,)
     lookup_field = ("library_id__library_uid", "book_id__book_uid",)
 
-    def get_object(self):
-        """
-        Override for working with multiple fields in `lookup_field`.
-        :return:
-        """
-        queryset = self.filter_queryset(self.get_queryset())
-        # Perform the lookup filtering.
-        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+    get_object = get_object_with_multiple_lookup
 
-        assert all(k in self.kwargs for k in self.lookup_field), (
-            'Expected view %s to be called with a URL keyword argument '
-            'named "%s". Fix your URL conf, or set the `.lookup_field` '
-            'attribute on the view correctly.' %
-            (self.__class__.__name__, lookup_url_kwarg)
-        )
 
-        filter_kwargs = {
-            k: self.kwargs.get(k) for k in self.lookup_field
-        }
-        obj = get_object_or_404(queryset, **filter_kwargs)
+class TakeBookUUIDLibraryUUIDAPIView(UpdateAPIView):
+    serializer_class = BookUUIDLibraryUUIDSerializer
+    queryset = BookLibraryModel.objects
+    renderer_classes = (JSONRenderer,)
+    lookup_field = ("library_id__library_uid", "book_id__book_uid",)
 
-        self.check_object_permissions(self.request, obj)
+    get_object = get_object_with_multiple_lookup
 
-        return obj
+    def get_serializer(self, *args, **kwargs):
+        if "data" in kwargs and args:
+            kwargs["data"]["available_count"] = args[0].available_count - kwargs["data"].get("available_count", 0)
+        return super().get_serializer(*args, **kwargs)
+
+
+class ReturnBookUUIDLibraryUUIDAPIView(UpdateAPIView):
+    serializer_class = BookUUIDLibraryUUIDSerializer
+    queryset = BookLibraryModel.objects
+    renderer_classes = (JSONRenderer,)
+    lookup_field = ("library_id__library_uid", "book_id__book_uid",)
+
+    get_object = get_object_with_multiple_lookup
+
+    def get_serializer(self, *args, **kwargs):
+        if "data" in kwargs and args:
+            kwargs["data"]["available_count"] = args[0].available_count + kwargs["data"].get("available_count", 0)
+        return super().get_serializer(*args, **kwargs)
