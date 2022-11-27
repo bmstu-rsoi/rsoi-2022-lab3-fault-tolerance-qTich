@@ -14,7 +14,48 @@ services:
     ports:
       - "5432:5432"
 
-# TODO добавить сервисы
+  reservation:
+    image: reservation
+    container_name: reservation
+    restart: on-failure
+    build: ./src/reservation
+    ports:
+      - "8070:8070"
+    depends_on:
+      - postgres
+
+  library:
+    image: library
+    container_name: library
+    restart: on-failure
+    build: ./src/library
+    ports:
+      - "8060:8060"
+    depends_on:
+      - postgres
+
+  rating:
+    image: rating
+    container_name: rating
+    restart: on-failure
+    build: ./src/rating
+    ports:
+      - "8050:8050"
+    depends_on:
+      - postgres
+
+  gateway:
+    image: gateway
+    container_name: gateway
+    restart: on-failure
+    build: ./src/gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - rating
+      - library
+      - reservation
 
 volumes:
   db-data:
