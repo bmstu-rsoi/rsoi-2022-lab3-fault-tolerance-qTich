@@ -59,3 +59,10 @@ class ReturnReservationAPIView(UpdateAPIView):
     queryset = ReservationModel.objects
     renderer_classes = (JSONRenderer,)
     lookup_field = "reservation_uid"
+
+    def get_serializer(self, *args, **kwargs):
+        if "data" in kwargs and args and args[0].status == "RENTED":
+            kwargs["data"]["status"] = (
+                "EXPIRED" if str(args[0].till_date) < kwargs["data"].get("till_date", "") else "RETURNED"
+            )
+        return super().get_serializer(*args, **kwargs)
