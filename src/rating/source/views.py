@@ -1,7 +1,7 @@
 from collections import OrderedDict
 
 from requests import Response
-from rest_framework.generics import RetrieveUpdateAPIView
+from rest_framework.generics import RetrieveAPIView, UpdateAPIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.renderers import JSONRenderer
 
@@ -24,12 +24,43 @@ class Pagination(PageNumberPagination):
         ]))
 
 
-class RatingAPIView(RetrieveUpdateAPIView):
+def get_object_based_on_header(self):
+    self.kwargs["username"] = self.request.headers.get("X-User-Name")
+    return super(self.__class__, self).get_object()
+
+
+class RatingAPIView(RetrieveAPIView):
     serializer_class = RatingSerializer
     queryset = RatingModel.objects
     renderer_classes = (JSONRenderer,)
     lookup_field = "username"
 
-    def get_object(self):
-        self.kwargs["username"] = self.request.headers.get("X-User-Name")
-        return super().get_object()
+    get_object = get_object_based_on_header
+
+
+class IncreaseStarsRatingAPIView(UpdateAPIView):
+    serializer_class = RatingSerializer
+    queryset = RatingModel.objects
+    renderer_classes = (JSONRenderer,)
+    lookup_field = "username"
+
+    get_object = get_object_based_on_header
+
+    def get_serializer(self, *args, **kwargs):
+        if "data" in kwargs and args:
+            kwargs["data"]["stars"] = args[0].stars + kwargs["data"].get("stars", 0)
+        return super().get_serializer(*args, **kwargs)
+
+
+class DecreaseStarsRatingAPIView(UpdateAPIView):
+    serializer_class = RatingSerializer
+    queryset = RatingModel.objects
+    renderer_classes = (JSONRenderer,)
+    lookup_field = "username"
+
+    get_object = get_object_based_on_header
+
+    def get_serializer(self, *args, **kwargs):
+        if "data" in kwargs and args:
+            kwargs["data"]["stars"] = args[0].stars - kwargs["data"].get("stars", 0)
+        return super().get_serializer(*args, **kwargs)
